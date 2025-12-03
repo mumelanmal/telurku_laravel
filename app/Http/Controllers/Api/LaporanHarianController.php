@@ -27,32 +27,36 @@ class LaporanHarianController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'kandang_id' => 'required|exists:kandangs,id',
-            'tanggal' => 'required|date',
-            'jumlah_telur' => 'required|integer',
-            'ayam_mati' => 'required|integer',
-            'ayam_sakit' => 'required|integer',
-            'pakan_kg' => 'required|numeric',
-            'suhu_kandang' => 'nullable|numeric',
-            'catatan' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'kandang_id' => 'required|exists:kandangs,id',
+                'tanggal' => 'required|date',
+                'jumlah_telur' => 'required|integer',
+                'ayam_mati' => 'required|integer',
+                'ayam_sakit' => 'required|integer',
+                'pakan_kg' => 'required|numeric',
+                'suhu_kandang' => 'nullable|numeric',
+                'catatan' => 'nullable|string',
+            ]);
 
-        $validated['user_id'] = $request->user()->id;
+            $validated['user_id'] = $request->user()->id;
 
-        DB::transaction(function () use ($validated) {
-            // Simpan laporan
-            $laporan = LaporanHarian::create($validated);
+            DB::transaction(function () use ($validated) {
+                // Simpan laporan
+                $laporan = LaporanHarian::create($validated);
 
-            // Update jumlah ayam di kandang (kurangi yang mati)
-            if ($validated['ayam_mati'] > 0) {
-                $kandang = Kandang::find($validated['kandang_id']);
-                if ($kandang) {
-                    $kandang->decrement('jumlah_ayam', $validated['ayam_mati']);
+                // Update jumlah ayam di kandang (kurangi yang mati)
+                if ($validated['ayam_mati'] > 0) {
+                    $kandang = Kandang::find($validated['kandang_id']);
+                    if ($kandang) {
+                        $kandang->decrement('jumlah_ayam', $validated['ayam_mati']);
+                    }
                 }
-            }
-        });
+            });
 
-        return response()->json(['message' => 'Laporan berhasil disimpan'], 201);
+            return response()->json(['message' => 'Laporan berhasil disimpan'], 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal menyimpan laporan: ' . $e->getMessage()], 500);
+        }
     }
 }

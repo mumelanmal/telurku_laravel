@@ -15,16 +15,20 @@ class KandangController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nama_kandang' => 'required|string|max:255',
-            'kapasitas' => 'required|integer',
-            'jumlah_ayam' => 'integer',
-            'keterangan' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nama_kandang' => 'required|string|max:255',
+                'kapasitas' => 'required|integer',
+                'jumlah_ayam' => 'integer',
+                'keterangan' => 'nullable|string',
+            ]);
 
-        $kandang = Kandang::create($validated);
+            $kandang = Kandang::create($validated);
 
-        return response()->json($kandang, 201);
+            return response()->json($kandang, 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal membuat kandang: ' . $e->getMessage()], 500);
+        }
     }
 
     public function show($id)
@@ -34,23 +38,31 @@ class KandangController extends Controller
 
     public function update(Request $request, $id)
     {
-        $kandang = Kandang::findOrFail($id);
-        
-        $validated = $request->validate([
-            'nama_kandang' => 'string|max:255',
-            'kapasitas' => 'integer',
-            'jumlah_ayam' => 'integer',
-            'keterangan' => 'nullable|string',
-        ]);
+        try {
+            $kandang = Kandang::findOrFail($id);
+            
+            $validated = $request->validate([
+                'nama_kandang' => 'string|max:255',
+                'kapasitas' => 'integer',
+                'jumlah_ayam' => 'integer',
+                'keterangan' => 'nullable|string',
+            ]);
 
-        $kandang->update($validated);
+            $kandang->update($validated);
 
-        return response()->json($kandang);
+            return response()->json($kandang);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal update kandang: ' . $e->getMessage()], 500);
+        }
     }
 
     public function destroy($id)
     {
-        Kandang::findOrFail($id)->delete();
-        return response()->json(['message' => 'Kandang berhasil dihapus']);
+        try {
+            Kandang::findOrFail($id)->delete();
+            return response()->json(['message' => 'Kandang berhasil dihapus']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal hapus kandang: ' . $e->getMessage()], 500);
+        }
     }
 }

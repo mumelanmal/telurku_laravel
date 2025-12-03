@@ -17,40 +17,48 @@ class StokPakanController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nama_pakan' => 'required|string',
-            'stok_kg' => 'required|numeric',
-            'harga_per_kg' => 'nullable|numeric',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nama_pakan' => 'required|string',
+                'stok_kg' => 'required|numeric',
+                'harga_per_kg' => 'nullable|numeric',
+            ]);
 
-        $stok = StokPakan::create($validated);
-        return response()->json($stok, 201);
+            $stok = StokPakan::create($validated);
+            return response()->json($stok, 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal membuat stok pakan: ' . $e->getMessage()], 500);
+        }
     }
 
     public function addTransaction(Request $request)
     {
-        $validated = $request->validate([
-            'stok_pakan_id' => 'required|exists:stok_pakans,id',
-            'tipe' => 'required|in:masuk,keluar',
-            'jumlah_kg' => 'required|numeric|min:0.1',
-            'keterangan' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'stok_pakan_id' => 'required|exists:stok_pakans,id',
+                'tipe' => 'required|in:masuk,keluar',
+                'jumlah_kg' => 'required|numeric|min:0.1',
+                'keterangan' => 'nullable|string',
+            ]);
 
-        $validated['user_id'] = $request->user()->id;
+            $validated['user_id'] = $request->user()->id;
 
-        DB::transaction(function () use ($validated) {
-            // Catat transaksi
-            TransaksiPakan::create($validated);
+            DB::transaction(function () use ($validated) {
+                // Catat transaksi
+                TransaksiPakan::create($validated);
 
-            // Update stok
-            $stok = StokPakan::find($validated['stok_pakan_id']);
-            if ($validated['tipe'] == 'masuk') {
-                $stok->increment('stok_kg', $validated['jumlah_kg']);
-            } else {
-                $stok->decrement('stok_kg', $validated['jumlah_kg']);
-            }
-        });
+                // Update stok
+                $stok = StokPakan::find($validated['stok_pakan_id']);
+                if ($validated['tipe'] == 'masuk') {
+                    $stok->increment('stok_kg', $validated['jumlah_kg']);
+                } else {
+                    $stok->decrement('stok_kg', $validated['jumlah_kg']);
+                }
+            });
 
-        return response()->json(['message' => 'Transaksi berhasil dicatat']);
+            return response()->json(['message' => 'Transaksi berhasil dicatat']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal mencatat transaksi: ' . $e->getMessage()], 500);
+        }
     }
 }
